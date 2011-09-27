@@ -494,7 +494,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public final DBCursor find( DBObject ref ){
-        return new DBCursor( this, ref, null );
+        return _db.newDBCursor( this, ref, null );
     }
 
     /**
@@ -521,7 +521,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public final DBCursor find( DBObject ref , DBObject keys ){
-        return new DBCursor( this, ref, keys );
+        return _db.newDBCursor( this, ref, keys );
     }
 
     /**
@@ -530,7 +530,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public final DBCursor find(){
-        return new DBCursor( this, new BasicDBObject(), null );
+        return _db.newDBCursor( this, new BasicDBObject(), null );
     }
 
     /** 
