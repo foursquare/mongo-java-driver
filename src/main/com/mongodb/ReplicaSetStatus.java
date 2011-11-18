@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,6 +53,8 @@ public class ReplicaSetStatus {
         _nextResolveTime = System.currentTimeMillis() + inetAddrCacheMS;
 
         _updater = new Updater();
+        _secondaryStrategy = useNoQueueSecondarySelection ? new NoQueueStrategy(slaveAcceptableLatencyMS, 10) 
+                                : new DefaultReplicaSetSecondaryStrategy(slaveAcceptableLatencyMS);
     }
 
     void start() {
@@ -98,40 +99,9 @@ public class ReplicaSetStatus {
      */
     ServerAddress getASecondary(){
         _checkClosed();
-        Node best = null;
-        double badBeforeBest = 0;
-
-        int start = _random.nextInt( _all.size() );
-
-        double mybad = 0;
-
-        for ( int i=0; i<_all.size(); i++ ){
-            Node n = _all.get( ( start + i ) % _all.size() );
-
-            if ( ! n.secondary() ){
-                mybad++;
-                continue;
-            }
-
-            if ( best == null ){
-                best = n;
-                badBeforeBest = mybad;
-                mybad = 0;
-                continue;
-            }
-
-            long diff = best._pingTime - n._pingTime;
-            if ( diff > slaveAcceptableLatencyMS ||
-                 // this is a complex way to make sure we get a random distribution of slaves
-                 ( ( badBeforeBest - mybad ) / ( _all.size() - 1 ) ) > _random.nextDouble() )
-                {
-                best = n;
-                badBeforeBest = mybad;
-                mybad = 0;
-            }
-
-        }
-
+        
+        Node best = _secondaryStrategy.select(null, null, _all);
+        
         if ( best == null )
             return null;
         return best._addr;
@@ -147,7 +117,7 @@ public class ReplicaSetStatus {
         return false;
     }
 
-    class Node {
+    class Node implements ReplicaSetNode {
 
         Node( ServerAddress addr ){
             _addr = addr;
@@ -180,19 +150,31 @@ public class ReplicaSetStatus {
                 _pingTime = _lastCheck - start;
 
                 if ( res == null ){
-                    throw new MongoInternalException("Invalid null value returned from isMaster");
+                    throw new MongoInternalException("Invalid null value returned from serverStatus");
+                }
+
+                BasicDBObject replRes = (BasicDBObject)res.get("repl");
+                if ( replRes == null ) {
+                    // TODO(jon) is this safe? maybe not for legacy master-slave or replica-pairs? 
+                    // default to master if not a repl set
+                    replRes = new BasicDBObject("ismaster", true);
                 }
 
                 if (!_ok) {
                     _logger.log( Level.INFO , "Server seen up: " + _addr );
                 }
-                _ok = true;
-                _isMaster = res.getBoolean( "ismaster" , false );
-                _isSecondary = res.getBoolean( "secondary" , false );
-                _lastPrimarySignal = res.getString( "primary" );
+                
+                if ( res.containsField("globalLock") ) {
+                    _queueSize = ((BasicDBObject)((BasicDBObject)res.get("globalLock")).get("currentQueue")).getInt("total");
+                }
 
-                if ( res.containsField( "hosts" ) ){
-                    for ( Object x : (List)res.get("hosts") ){
+                _ok = true;
+                _isMaster = replRes.getBoolean( "ismaster" , false );
+                _isSecondary = replRes.getBoolean( "secondary" , false );
+                _lastPrimarySignal = replRes.getString( "primary" );
+
+                if ( replRes.containsField( "hosts" ) ){
+                    for ( Object x : (List)replRes.get("hosts") ){
                         String host = x.toString();
                         Node node = _addIfNotHere(host);
                         if (node != null && seenNodes != null)
@@ -200,8 +182,8 @@ public class ReplicaSetStatus {
                     }
                 }
 
-                if ( res.containsField( "passives" ) ){
-                    for ( Object x : (List)res.get("passives") ){
+                if ( replRes.containsField( "passives" ) ){
+                    for ( Object x : (List)replRes.get("passives") ){
                         String host = x.toString();
                         Node node = _addIfNotHere(host);
                         if (node != null && seenNodes != null)
@@ -211,14 +193,14 @@ public class ReplicaSetStatus {
 
                 if (_isMaster ) {
                     // max size was added in 1.8
-                    if (res.containsField("maxBsonObjectSize"))
-                        maxBsonObjectSize = ((Integer)res.get( "maxBsonObjectSize" )).intValue();
+                    if (replRes.containsField("maxBsonObjectSize"))
+                        maxBsonObjectSize = ((Integer)replRes.get( "maxBsonObjectSize" )).intValue();
                     else
                         maxBsonObjectSize = Bytes.MAX_OBJECT_SIZE;
                 }
 
-                if (res.containsField("setName")) {
-	                String setName = res.get( "setName" ).toString();
+                if (replRes.containsField("setName")) {
+	                String setName = replRes.get( "setName" ).toString();
 	                if ( _setName == null ){
 	                    _setName = setName;
 	                    _logger = Logger.getLogger( _rootLogger.getName() + "." + setName );
@@ -256,7 +238,7 @@ public class ReplicaSetStatus {
             buf.append( "Replica Set Node: " ).append( _addr ).append( "\n" );
             buf.append( "\t ok \t" ).append( _ok ).append( "\n" );
             buf.append( "\t ping \t" ).append( _pingTime ).append( "\n" );
-
+            buf.append( "\t queueSize \t" ).append(_queueSize).append( "\n" );
             buf.append( "\t master \t" ).append( _isMaster ).append( "\n" );
             buf.append( "\t secondary \t" ).append( _isSecondary ).append( "\n" );
 
@@ -282,6 +264,22 @@ public class ReplicaSetStatus {
         boolean _isSecondary = false;
 
         double _priority = 0;
+        int _queueSize = 0;
+        @Override
+        public boolean checkTag(String key, String value) {
+            return false;
+        }
+
+        @Override
+        public float getPingTime() {
+            return _pingTime;
+        }
+
+        @Override
+        public int getQueueSize() {
+            return _queueSize;
+        }
+
     }
 
     class Updater extends Thread {
@@ -360,7 +358,7 @@ public class ReplicaSetStatus {
         }
     }
 
-    List<ServerAddress> getServerAddressList() {
+    public List<ServerAddress> getServerAddressList() {
         List<ServerAddress> addrs = new ArrayList<ServerAddress>();
         for (Node node : _all)
             addrs.add(node._addr);
@@ -381,7 +379,7 @@ public class ReplicaSetStatus {
         return n;
     }
 
-    Node findNode( String host ){
+    public Node findNode( String host ){
         for ( int i=0; i<_all.size(); i++ )
             if ( _all.get(i)._names.contains( host ) )
                 return _all.get(i);
@@ -427,6 +425,10 @@ public class ReplicaSetStatus {
     public int getMaxBsonObjectSize() {
         return maxBsonObjectSize;
     }
+    
+    public List<Node> getAll() {
+        return new ArrayList<Node>(_all);
+    }
 
     final List<Node> _all;
     Updater _updater;
@@ -438,12 +440,13 @@ public class ReplicaSetStatus {
     String _lastPrimarySignal;
     boolean _closed = false;
 
-    final Random _random = new Random();
+    final ReplicaSetSecondaryStrategy _secondaryStrategy;
     long _nextResolveTime;
 
     static int updaterIntervalMS;
     static int slaveAcceptableLatencyMS;
     static int inetAddrCacheMS;
+    static boolean useNoQueueSecondarySelection;
 
     static final MongoOptions _mongoOptions = new MongoOptions();
 
@@ -451,6 +454,7 @@ public class ReplicaSetStatus {
         updaterIntervalMS = Integer.parseInt(System.getProperty("com.mongodb.updaterIntervalMS", "5000"));
         slaveAcceptableLatencyMS = Integer.parseInt(System.getProperty("com.mongodb.slaveAcceptableLatencyMS", "15"));
         inetAddrCacheMS = Integer.parseInt(System.getProperty("com.mongodb.inetAddrCacheMS", "300000"));
+        useNoQueueSecondarySelection = Boolean.parseBoolean(System.getProperty("com.mongodb.noQueueSecondarySelection"));
         _mongoOptions.connectTimeout = Integer.parseInt(System.getProperty("com.mongodb.updaterConnectTimeoutMS", "20000"));
         _mongoOptions.socketTimeout = Integer.parseInt(System.getProperty("com.mongodb.updaterSocketTimeoutMS", "20000"));
     }
