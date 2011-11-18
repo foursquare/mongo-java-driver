@@ -117,7 +117,7 @@ public class ReplicaSetStatus {
         return false;
     }
 
-    class Node implements ReplicaSetNode {
+    public class Node implements ReplicaSetNode {
 
         Node( ServerAddress addr ){
             _addr = addr;
@@ -265,6 +265,11 @@ public class ReplicaSetStatus {
 
         double _priority = 0;
         int _queueSize = 0;
+        
+        public DBPort getPort() {
+            return _port;
+        }
+        
         @Override
         public boolean checkTag(String key, String value) {
             return false;

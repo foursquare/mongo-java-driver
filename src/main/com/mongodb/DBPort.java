@@ -147,7 +147,7 @@ public class DBPort {
         return res.get(0);
     }
 
-    synchronized CommandResult runCommand( DB db , DBObject cmd ) throws IOException {
+    public synchronized CommandResult runCommand( DB db , DBObject cmd ) throws IOException {
         DBObject res = findOne( db , "$cmd" , cmd );
         if ( res == null )
             throw new MongoInternalException( "something is wrong, no command result" );
