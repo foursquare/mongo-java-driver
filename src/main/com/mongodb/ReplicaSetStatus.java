@@ -97,7 +97,7 @@ public class ReplicaSetStatus {
     /**
      * @return a good secondary or null if can't find one
      */
-    ServerAddress getASecondary(){
+    public ServerAddress getASecondary(){
         _checkClosed();
         
         Node best = _secondaryStrategy.select(null, null, _all);
@@ -145,7 +145,7 @@ public class ReplicaSetStatus {
         synchronized void update(Set<Node> seenNodes){
             try {
                 long start = System.currentTimeMillis();
-                CommandResult res = _port.runCommand( _mongo.getDB("admin") , _isMasterCmd );
+                CommandResult res = _port.runCommand( _mongo.getDB("admin") , _serverStatus );
                 _lastCheck = System.currentTimeMillis();
                 _pingTime = _lastCheck - start;
 
@@ -464,7 +464,7 @@ public class ReplicaSetStatus {
         _mongoOptions.socketTimeout = Integer.parseInt(System.getProperty("com.mongodb.updaterSocketTimeoutMS", "20000"));
     }
 
-    static final DBObject _isMasterCmd = new BasicDBObject( "ismaster" , 1 );
+    private static final DBObject _serverStatus = new BasicDBObject( "serverStatus" , 1 );
 
     public static void main( String args[] )
         throws Exception {
