@@ -348,7 +348,7 @@ public class ReplicaSetStatus {
 
                 if (replRes.containsField("setName")) {
 	                String setName = replRes.get( "setName" ).toString();
-	                if ( _setName == null ){
+	                if ( _setName.get() == null ){
 	                    _setName.set( setName );
 	                    _logger.set ( Logger.getLogger( _rootLogger.getName() + "." + setName ) );
 	                }
