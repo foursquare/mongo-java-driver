@@ -233,7 +233,7 @@ public class ReplicaSetStatus {
     /**
      * The replica set node object.
      */
-    static class Node implements ReplicaSetNode {
+    public static class Node implements ReplicaSetNode {
 
         Node(   ServerAddress addr,
                 List<Node> all,
