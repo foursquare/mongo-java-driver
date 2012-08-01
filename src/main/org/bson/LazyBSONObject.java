@@ -15,6 +15,8 @@
  */
 package org.bson;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -262,6 +264,11 @@ public class LazyBSONObject implements BSONObject {
 
     public int getBSONSize(){
         return _input.getInt( _doc_start_offset );
+    }
+    
+    public int pipe(OutputStream os) throws IOException {
+        os.write(_input.array(), _doc_start_offset, getBSONSize());
+        return getBSONSize();
     }
 
     private String getElementFieldName( final int offset ){
