@@ -84,7 +84,7 @@ public class Mongo {
     @Deprecated
     public static final int MINOR_VERSION = 9;
 
-    private static final String FULL_VERSION = "2.9.3";
+    private static final String FULL_VERSION = "2.9.3_fs-a";
 
     static int cleanerIntervalMS;
     static {
@@ -343,11 +343,15 @@ public class Mongo {
         if ( db != null )
             return db;
 
-        db = new DBApiLayer( this , dbname , _connector );
+        db = newDB(dbname, _connector);
         DB temp = _dbs.putIfAbsent( dbname , db );
         if ( temp != null )
             return temp;
         return db;
+    }
+
+    protected DB newDB( String dbname, DBTCPConnector connector ){
+        return new DBApiLayer( this , dbname , _connector );
     }
 
     /**
