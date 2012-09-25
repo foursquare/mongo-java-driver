@@ -341,11 +341,15 @@ public class Mongo {
         if ( db != null )
             return db;
 
-        db = new DBApiLayer( this , dbname , _connector );
+        db = newDB(dbname, _connector);
         DB temp = _dbs.putIfAbsent( dbname , db );
         if ( temp != null )
             return temp;
         return db;
+    }
+
+    protected DB newDB( String dbname, DBTCPConnector connector ){
+        return new DBApiLayer( this , dbname , _connector );
     }
 
     /**

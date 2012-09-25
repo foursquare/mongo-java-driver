@@ -971,6 +971,10 @@ public abstract class DB {
         return getMongo().getAuthority().getCredentialsStore().get(getName());
     }
 
+    protected DBCursor newDBCursor( DBCollection collection, DBObject ref, DBObject keys, ReadPreference preference ){
+        return new DBCursor( collection, ref, keys, preference );
+    }
+
     final Mongo _mongo;
     final String _name;
 
