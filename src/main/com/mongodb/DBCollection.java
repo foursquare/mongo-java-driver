@@ -610,7 +610,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public DBCursor find( DBObject ref ){
-        return new DBCursor( this, ref, null, getReadPreference());
+        return _db.newDBCursor( this, ref, null, getReadPreference());
     }
 
     /**
@@ -637,7 +637,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public DBCursor find( DBObject ref , DBObject keys ){
-        return new DBCursor( this, ref, keys, getReadPreference());
+        return _db.newDBCursor( this, ref, keys, getReadPreference());
     }
 
 
@@ -647,7 +647,7 @@ public abstract class DBCollection {
      * @dochub find
      */
     public DBCursor find(){
-        return new DBCursor( this, null, null, getReadPreference());
+        return _db.newDBCursor( this, null, null, getReadPreference());
     }
 
     /**

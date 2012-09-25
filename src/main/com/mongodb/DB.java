@@ -805,6 +805,10 @@ public abstract class DB {
 
     public abstract void cleanCursors( boolean force );
 
+    protected DBCursor newDBCursor( DBCollection collection, DBObject ref, DBObject keys, ReadPreference preference ){
+        return new DBCursor( collection, ref, keys, preference );
+    }
+
     AuthenticationCredentials getAuthenticationCredentials() {
         return authenticationCredentialsReference.get();
     }
