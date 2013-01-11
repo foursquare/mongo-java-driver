@@ -89,6 +89,7 @@ public class CommandResult extends BasicDBObject {
         } else {
             // GLE check
             if ( hasErr() ) {
+                System.err.println("Found Error: " + toString());
                 Object foo = get( "err" );
 
                 int code = getCode();
