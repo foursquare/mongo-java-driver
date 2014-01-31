@@ -72,7 +72,7 @@ public class CommandResult extends BasicDBObject {
         } else if ( hasErr() ) { // check for errors reported by getlasterror command
             String err = getErr();
             if (getCode() == 11000 || getCode() == 11001 || getCode() == 12582 ||
-                    err.startsWith("E11000") || err.startsWith("E11001")) {
+                    (err.indexOf("E11000") != -1) || (err.indexOf("E11001") != -1)) {
                 return new MongoException.DuplicateKey(this);
             }
             else {
