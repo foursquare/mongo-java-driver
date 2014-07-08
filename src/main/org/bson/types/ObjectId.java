@@ -148,6 +148,16 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         _new = false;
     }
 
+    public ObjectId( ByteBuffer buffer ){
+        if (buffer.remaining() < 12){
+            throw new IllegalArgumentException( "need 12 bytes" );
+        }
+        _time = buffer.getInt();
+        _machine = buffer.getInt();
+        _inc = buffer.getInt();
+        _new = false;
+    }
+
     /**
      * Creates an ObjectId
      * @param time time in seconds
