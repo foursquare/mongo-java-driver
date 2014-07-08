@@ -224,6 +224,16 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         _new = false;
     }
 
+    public ObjectId( ByteBuffer buffer ){
+        if (buffer.remaining() < 12){
+            throw new IllegalArgumentException( "need 12 bytes" );
+        }
+        _time = buffer.getInt();
+        _machine = buffer.getInt();
+        _inc = buffer.getInt();
+        _new = false;
+    }
+
     /**
      * Constructs an ObjectId using  time, machine and inc values.  The Java driver has done it this way for a long time, but it
      * does not match the <a href="http://docs.mongodb.org/manual/reference/object-id/">ObjectId specification</a>,
