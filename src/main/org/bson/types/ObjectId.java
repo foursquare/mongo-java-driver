@@ -460,10 +460,12 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
     /**
      * Gets the time of this instance, in milliseconds.
      *
-     * @deprecated Use #getDate instead
      * @return the time component of this ID in milliseconds
      */
-    @Deprecated
+    // TODO(benjy): Remove all uses in foursquare.web and then revert this commit,
+    // which will also restore the @deprecated javadoc.  That javadoc had to be
+    // removed because, amazingly, javac acts on it as if the annotation was present.
+    //@Deprecated
     public long getTime(){
         return _time * 1000L;
     }
