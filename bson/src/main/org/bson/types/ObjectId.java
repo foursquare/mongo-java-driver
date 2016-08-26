@@ -500,10 +500,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     }
 
     /**
-     * 
-     */
-
-    /**
      * @return a string representation of the ObjectId in hexadecimal format
      * @see ObjectId#toHexString()
      * @deprecated use {@link #toHexString()}
