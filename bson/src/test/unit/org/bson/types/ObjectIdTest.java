@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import java.util.Date;
 import java.util.Random;
+import java.nio.ByteBuffer;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -54,6 +55,33 @@ public class ObjectIdTest {
         }
         expected = new ObjectId(b);
         assertEquals(expected, new ObjectId(expected.toByteArray()));
+        assertEquals("41d91c58988b09375cc1fe9f", expected.toString());
+    }
+
+    @Test
+    public void testByteBuffer() {
+        ObjectId expected = new ObjectId();
+        ByteBuffer buffer = ByteBuffer.allocate(12);
+        expected.putToByteBuffer(buffer);
+        buffer.rewind();
+        ObjectId actual = new ObjectId(buffer);
+        assertEquals(expected, actual);
+
+        buffer.clear();
+        Random r = new Random(17);
+        for (int i = 0; i < 12; i++) {
+            buffer.put((byte) (r.nextInt()));
+        }
+
+        buffer.rewind();
+        expected = new ObjectId(buffer);
+
+        buffer.clear();
+        expected.putToByteBuffer(buffer);
+
+        buffer.rewind();
+        assertEquals(expected, new ObjectId(buffer));
+
         assertEquals("41d91c58988b09375cc1fe9f", expected.toString());
     }
 

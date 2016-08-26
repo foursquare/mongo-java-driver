@@ -268,6 +268,28 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
         this(legacyToBytes(timestamp, machineAndProcessIdentifier, counter));
     }
 
+    /**
+     * Constructs a new instance from the given ByteBuffer
+     *
+     * @param buffer the ByteBuffer
+     * @throws IllegalArgumentException if the buffer is null or does not have at least 12 bytes remaining
+     */
+    public ObjectId(final ByteBuffer buffer) {
+        if (buffer == null) {
+            throw new IllegalArgumentException();
+        }
+        if (buffer.remaining() < 12) {
+            throw new IllegalArgumentException("need 12 bytes");
+        }
+
+        // Note: Cannot use ByteBuffer.getInt because it depends on tbe buffer's byte order
+        // and ObjectId's are always in big-endian order.
+        timestamp = makeInt(buffer.get(), buffer.get(), buffer.get(), buffer.get());
+        machineIdentifier = makeInt((byte) 0, buffer.get(), buffer.get(), buffer.get());
+        processIdentifier = (short) makeInt((byte) 0, (byte) 0, buffer.get(), buffer.get());
+        counter = makeInt((byte) 0, buffer.get(), buffer.get(), buffer.get());
+    }
+
     private static byte[] legacyToBytes(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
         byte[] bytes = new byte[12];
         bytes[0] = int3(timestamp);
@@ -306,6 +328,35 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
         bytes[11] = int0(counter);
         return bytes;
     }
+
+    /**
+      * Convert to bytes and put those bytes to the provided ByteBuffer.
+      * Note that the numbers are stored in big-endian order.
+      *
+      * @param buffer the ByteBuffer
+      * @throws IllegalArgumentException if the buffer is null or does not have at least 12 bytes remaining
+      */
+    public void putToByteBuffer(final ByteBuffer buffer) {
+        if (buffer == null) {
+            throw new IllegalArgumentException();
+        }
+        if (buffer.remaining() < 12) {
+            throw new IllegalArgumentException("need 12 bytes");
+        }
+
+        buffer.put(int3(timestamp));
+        buffer.put(int2(timestamp));
+        buffer.put(int1(timestamp));
+        buffer.put(int0(timestamp));
+        buffer.put(int2(machineIdentifier));
+        buffer.put(int1(machineIdentifier));
+        buffer.put(int0(machineIdentifier));
+        buffer.put(short1(processIdentifier));
+        buffer.put(short0(processIdentifier));
+        buffer.put(int2(counter));
+        buffer.put(int1(counter));
+        buffer.put(int0(counter));
+   }
 
     /**
      * Gets the timestamp (number of seconds since the Unix epoch).
@@ -447,6 +498,10 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     public long getTime() {
         return timestamp * 1000L;
     }
+
+    /**
+     * 
+     */
 
     /**
      * @return a string representation of the ObjectId in hexadecimal format
