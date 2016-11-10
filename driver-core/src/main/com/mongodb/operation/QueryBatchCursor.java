@@ -144,6 +144,9 @@ class QueryBatchCursor<T> implements BatchCursor<T> {
         if (closed) {
             return;
         }
+
+        closed = true;
+
         try {
             killCursor();
         } finally {
@@ -151,8 +154,6 @@ class QueryBatchCursor<T> implements BatchCursor<T> {
                 connectionSource.release();
             }
         }
-
-        closed = true;
     }
 
     @Override
